@@ -3,7 +3,16 @@ uuid = "b21f8933-5eb2-48a8-b9a5-87a408e1d5ec"
 authors = ["GiggleLiu <cacate0129@gmail.com> and contributors"]
 version = "0.1.0"
 
+[deps]
+GraphTensorNetworks = "0978c8c2-34f6-49c7-9826-ea2cc20dabd2"
+Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
+JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
+Serialization = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
+
 [compat]
+GraphTensorNetworks = "0.2"
+Graphs = "1.6"
+JSON = "0.21"
 julia = "1"
 
 [extras]
