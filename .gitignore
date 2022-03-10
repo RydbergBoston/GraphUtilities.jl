@@ -1,4 +1,8 @@
 /Manifest.toml
 /data/
 *.jld2
+_*.toml
+_*.json
+_*.xml
+*.dat
 .vscode/
