@@ -7,13 +7,18 @@
 #        size_10.dat
 #        size_9.dat
 
-struct GraphProblemConfig{PT<:GraphProblem, WT<:Union{NoWeight, Vector}, N, VT}
+struct GraphProblemConfig{PT<:GraphProblem, WT<:Union{NoWeight, Vector}, TT<:NTuple}
     type::Type{PT}
     graph::SimpleGraph{Int}
     weights::WT
-    openvertices::NTuple{N,VT}
+    openvertices::TT
 end
-for PT in [:IndependentSet, :MaximalIS, :Matching, :Coloring, :DominatingSet, :MaxCut]
+
+function GraphProblemConfig(type::Type{<:GraphProblem}, graph::SimpleGraph; weights=NoWeight(), openvertices=())
+    return GraphProblemConfig(type, graph, weights, openvertices)
+end
+
+for PT in [:IndependentSet, :MaximalIS, :DominatingSet, :MaxCut]
     # kwargs ∈ [optimizer, simplifier]
     @eval function instantiate(config::GraphProblemConfig{PT}; kwargs...) where PT<:$PT
         $PT(config.graph; weights=config.weights, openvertices=config.openvertices, kwargs...)
@@ -53,22 +58,10 @@ function foldername(basefolder::String, config::GraphProblemConfig; create, pref
     return name
 end
         
-function save_code(folder, problem::GraphProblem)
-    # write tensor network contraction pattern
-    filename = joinpath(folder, "tensornetwork.json")
-    GraphTensorNetworks.writejson(filename, problem.code)
-end
-function load_code(config::GraphProblemConfig, folder)
-    # write tensor network contraction pattern
-    filename = joinpath(folder, "tensornetwork.json")
-    code = GraphTensorNetworks.readjson(filename)
-    return instantiate(config, code)
+function load_problem(foldername::String, config::GraphProblemConfig)
+    instantiate(config, load_code(config, foldername))
 end
 
-for (PT, FS) in [(:IndependentSet, [:graph, :weights]), (:MaximalIS, [:graph, :weights]), (:MaxCut, [:graph, :weights]), (:Coloring, [:graph]),
-    (:PaintShop, [:sequence]), (:Satisfiability, [:cnf]), (:Matching. [:graph, :weights]), :(DominatingSet, [:graph])]
-    @eval parameter_names(::Type{T}) where T<:$PT = $FS
-end
 function dump_args(config::PT) where PT<:GraphProblemConfig
     return Dict{String,Any}(
         "type" => string(config.type),
@@ -84,7 +77,17 @@ function dump_args(g::SimpleGraph)
     )
 end
 
-function load_problem(graph, ::Type{P}, args...) where P<:GraphProblem
+function save_code(folder, problem::GraphProblem)
+    # write tensor network contraction pattern
+    filename = joinpath(folder, "tensornetwork.json")
+    GraphTensorNetworks.writejson(filename, problem.code)
+end
+
+function load_code(config::GraphProblemConfig, folder)
+    # write tensor network contraction pattern
+    filename = joinpath(folder, "tensornetwork.json")
+    code = GraphTensorNetworks.readjson(filename)
+    return instantiate(config, code)
 end
 
 function saveconfigs(folderout, sizes, configs::AbstractVector{<:Union{ConfigEnumerator, TreeConfigEnumerator}})
