@@ -126,45 +126,40 @@ function save_property(folder::String, property::GraphTensorNetworks.AbstractPro
         writedlm(fd, hcat(collect.(zip(data.maxorder-K+1:data.maxorder, data.coeffs))...)')
     elseif property isa GraphPolynomial
         writedlm(fd, data.coeffs)
-    elseif property isa SingleConfigMax{1,false} || property isa SingleConfigMin{1,false}
+    elseif property isa SingleConfigMax{1} || property isa SingleConfigMin{1}
         c = data.c.data
         writedlm(fd, [data.n, get_s(c), c...])
-    elseif property isa (SingleConfigMax{K,false} where K) || property isa (SingleConfigMin{K,false} where K)
+    elseif property isa SingleConfigMax || property isa SingleConfigMin
         writedlm(fd, vcat([[di.n, get_s(di.c.data), di.c.data...]' for di in data.orders]...))
-    elseif property isa ConfigsMax{1,false}
-        writedlm(fd, data.coeffs)
-    elseif property isa ConfigsMin{1,false}
-        writedlm(fd, data.coeffs)
-    elseif property isa (ConfigsMax{K, false} where K)
-        writedlm(fd, data.coeffs)
-    elseif property isa (ConfigsMin{K, false} where K)
-        writedlm(fd, data.coeffs)
+    elseif property isa ConfigsMax || property isa ConfigsMin
+        if property isa ConfigsMax{1} || property isa ConfigsMin{1}
+            sizes = [data.n]
+            bls = get_n(data.c)
+            configs = [data.c]
+        else
+            sizes = collect(data.maxorder-length(data.coeffs)+1:data.maxorder)
+            bls = get_n(data.coeffs[1])
+            configs = [data.coeffs...]
+        end
+        !isdir(fd) && mkdir(fd)
+        writedlm(joinpath(fd, "sizes.dat"), sizes)
+        writedlm(joinpath(fd, "bitlength.dat"), bls)
+        saveconfigs(fd, sizes, configs)
     elseif property isa ConfigsAll
-        writedlm(fd, data.coeffs)
-    elseif property isa SingleConfigMax{1,true}
-        writedlm(fd, data.coeffs)
-    elseif property isa (SingleConfigMax{K,true} where K)
-        @warn "bounded `SingleConfigMax` property for `K != 1` is not implemented. Switching to the unbounded version."
-        writedlm(fd, data.coeffs)
-    elseif property isa SingleConfigMin{1,true}
-        writedlm(fd, data.coeffs)
-    elseif property isa (SingleConfigMin{K,true} where K)
-        @warn "bounded `SingleConfigMin` property for `K != 1` is not implemented. Switching to the unbounded version."
-        writedlm(fd, data.coeffs)
-    elseif property isa ConfigsMax{1,true}
-        writedlm(fd, data.coeffs)
-    elseif property isa ConfigsMin{1,true}
-        writedlm(fd, data.coeffs)
-    elseif property isa (ConfigsMax{K,true} where K)
-        writedlm(fd, data.coeffs)
-    elseif property isa (ConfigsMin{K,true} where K)
-        writedlm(fd, data.coeffs)
+        !isdir(fd) && mkdir(fd)
+        writedlm(joinpath(fd, "bitlength.dat"), get_n(data))
+        saveconfigs(fd, ["all"], [data])
     else
         error("unknown property: `$property`.")
     end
 
 end
 get_s(::StaticElementVector{N,S,C}) where {N,S,C} = S
+get_n(::ConfigEnumerator{N,S,C}) where {N,S,C} = N
+get_n(::TreeConfigEnumerator{N,S,C}) where {N,S,C} = N
+get_t(::ConfigsMax{K,B,T}) where {K,B,T} = T
+get_t(::ConfigsMin{K,B,T}) where {K,B,T} = T
+get_t(::ConfigsAll{T}) where {T} = T
 
 function load_property(folder::String, property::GraphTensorNetworks.AbstractProperty; T=Float64)
     fd = joinpath(folder, "$(typeof(property)).dat")
@@ -183,11 +178,11 @@ function load_property(folder::String, property::GraphTensorNetworks.AbstractPro
         return TruncatedPoly((data[:,2]...,), data[end,1])
     elseif property isa GraphPolynomial
         return Polynomial(vec(readdlm(fd)))
-    elseif property isa SingleConfigMax{1,false} || property isa SingleConfigMin{1,false}
+    elseif property isa SingleConfigMax{1} || property isa SingleConfigMin{1}
         data = readdlm(fd)
         n, s = data[1], Int(data[2])
         return CountingTropical(n, ConfigSampler(StaticElementVector(2^s, Int.(data[3:end]))))
-    elseif property isa (SingleConfigMax{K,false} where K) || property isa (SingleConfigMin{K,false} where K)
+    elseif property isa SingleConfigMax || property isa SingleConfigMin
         data = readdlm(fd)
         s = Int(data[1,2])
         orders = map(1:size(data, 1)) do i
@@ -196,34 +191,19 @@ function load_property(folder::String, property::GraphTensorNetworks.AbstractPro
             CountingTropical(n, ConfigSampler(StaticElementVector(2^s, Int.(di[3:end]))))
         end
         return ExtendedTropical{size(data, 1)}(orders)
-    elseif property isa ConfigsMax{1,false}
-        readdlm(fd, data.coeffs)
-    elseif property isa ConfigsMin{1,false}
-        readdlm(fd, data.coeffs)
-    elseif property isa (ConfigsMax{K, false} where K)
-        readdlm(fd, data.coeffs)
-    elseif property isa (ConfigsMin{K, false} where K)
-        readdlm(fd, data.coeffs)
+    elseif property isa ConfigsMax || property isa ConfigsMin
+        sizes = vec(readdlm(joinpath(fd, "sizes.dat")))
+        bitlength = Int(readdlm(joinpath(fd, "bitlength.dat"))[])
+        data = loadconfigs(fd, sizes; tree_storage=get_t(property), bitlength=bitlength)
+        if property isa ConfigsMax{1} || property isa ConfigsMin{1}
+            return CountingTropical(T(sizes[]), data[])
+        else
+            return TruncatedPoly((data...,), T(sizes[end]))
+        end
     elseif property isa ConfigsAll
-        readdlm(fd, data.coeffs)
-    elseif property isa SingleConfigMax{1,true}
-        readdlm(fd, data.coeffs)
-    elseif property isa (SingleConfigMax{K,true} where K)
-        @warn "bounded `SingleConfigMax` property for `K != 1` is not implemented. Switching to the unbounded version."
-        readdlm(fd, data.coeffs)
-    elseif property isa SingleConfigMin{1,true}
-        readdlm(fd, data.coeffs)
-    elseif property isa (SingleConfigMin{K,true} where K)
-        @warn "bounded `SingleConfigMin` property for `K != 1` is not implemented. Switching to the unbounded version."
-        readdlm(fd, data.coeffs)
-    elseif property isa ConfigsMax{1,true}
-        readdlm(fd, data.coeffs)
-    elseif property isa ConfigsMin{1,true}
-        readdlm(fd, data.coeffs)
-    elseif property isa (ConfigsMax{K,true} where K)
-        readdlm(fd, data.coeffs)
-    elseif property isa (ConfigsMin{K,true} where K)
-        readdlm(fd, data.coeffs)
+        bitlength = Int(readdlm(joinpath(fd, "bitlength.dat"))[])
+        data = loadconfigs(fd, ["all"]; tree_storage=get_t(property), bitlength=bitlength)
+        return data[]
     else
         error("unknown property: `$property`.")
     end
