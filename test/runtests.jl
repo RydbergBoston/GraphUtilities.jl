@@ -1,4 +1,5 @@
 using GraphUtilities, Graphs, GraphTensorNetworks
+using GraphUtilities: save_property, load_property
 using Test
 
 @testset "file io" begin
@@ -48,4 +49,25 @@ using Test
     @test isfile(fname)
     configs = GraphUtilities.loadconfigs(fc, [res.n]; tree_storage=true, bitlength=10)
     @test configs == [res.c]
+end
+
+@testset "save property" begin
+    # create a folder
+    graph = smallgraph(:petersen)
+    config = GraphProblemConfig(IndependentSet, graph)
+    folder = GraphUtilities.foldername("data", config; create=true)
+
+    # instantiate a graph problem
+    gp = instantiate(config)
+    GraphUtilities.save_code(folder, gp)
+    gp2 = GraphUtilities.load_code(config, folder)
+
+    for property in [SizeMax(1), SizeMin(1), SizeMax(3), SizeMin(3), CountingAll(),
+        CountingMax(1), CountingMin(1), CountingMax(3), CountingMin(3), GraphPolynomial(),
+        SingleConfigMax(1), SingleConfigMin(1), SingleConfigMax(3), SingleConfigMin(3),
+        ]
+        res = solve(gp2, property)[]
+        save_property(folder, property, res)
+        @test load_property(folder, property) == res
+    end
 end

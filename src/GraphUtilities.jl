@@ -1,7 +1,7 @@
 module GraphUtilities
 
 using GraphTensorNetworks, Graphs
-using JSON
+using JSON, DelimitedFiles
 using Serialization
 
 export GraphProblemConfig, instantiate
