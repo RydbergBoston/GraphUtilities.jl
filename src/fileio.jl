@@ -1,27 +1,90 @@
-# the hash for the task, it is used to store/load the instance.
-function instance_hash(edgs, ::Type{P}, ::Type{PROP}; kwargs...) where {P<:GraphProblem, PROP<:GraphTensorNetworks.AbstractProperty}
-    return hash((edgs, P, PROP, kwargs))
+# The data folder layout
+# Graph Instance (hash)
+#    info.json
+#    tensornetwork.json
+#    SizeMax{2}/
+#    ConfigsMax{2}/
+#        size_10.dat
+#        size_9.dat
+
+struct GraphProblemConfig{PT<:GraphProblem, WT<:Union{NoWeight, Vector}, N, VT}
+    type::Type{PT}
+    graph::SimpleGraph{Int}
+    weights::WT
+    openvertices::NTuple{N,VT}
 end
-function foldername(basefolder::String, g::SimpleGraph, ::Type{P}, ::Type{PROP}; create, kwargs...) where {P<:GraphProblem, PROP<:GraphTensorNetworks.AbstractProperty}
-    # NOTE: for UDG, we need more info about locations.
-    edgs = ([minmax(e.src, e.dst) for e in edges(g)]...,)
-    name = joinpath(basefolder, string(instance_hash(edgs, P, PROP; kwargs...)))
+for PT in [:IndependentSet, :MaximalIS, :Matching, :Coloring, :DominatingSet, :MaxCut]
+    # kwargs ∈ [optimizer, simplifier]
+    @eval function instantiate(config::GraphProblemConfig{PT}; kwargs...) where PT<:$PT
+        $PT(config.graph; weights=config.weights, openvertices=config.openvertices, kwargs...)
+    end
+    @eval function instantiate(config::GraphProblemConfig{PT}, code; kwargs...) where PT<:$PT
+        $PT(code, config.graph, config.weights)
+    end
+end
+for PT in [:Matching, :Coloring]
+    # kwargs ∈ [optimizer, simplifier]
+    @eval function instantiate(config::GraphProblemConfig{PT}; kwargs...) where PT<:$PT
+        @assert config.weights isa NoWeight
+        $PT(config.graph; openvertices=config.openvertices, kwargs...)
+    end
+    @eval function instantiate(config::GraphProblemConfig{PT}, code) where PT<:$PT
+        @assert config.weights isa NoWeight
+        $PT(code, config.graph)
+    end
+end
+
+function foldername(basefolder::String, config::GraphProblemConfig; create, prefix="")
+    # create a parameter dict
+    d = dump_args(config)
+    # use the hash of dictionary as the folder name
+    name = joinpath(basefolder, prefix * string(hash(d)))
+
     # create folder
     if create && !isdir(name)
         mkpath(name)
-    end
-    # create info file
-    js = joinpath(name, "info.xml")
-    if create# && !isfile(js)
-        d = Dict{String,Any}("edges"=>collect(collect.(Int,edgs)), "problem"=>string(P), "property"=>string(PROP))
-        for (k, v) in kwargs
-            d[string(k)] = v
-        end
+        # create info file
+        js = joinpath(name, "info.json")
+        # dump to file
         open(js, "w") do f
             JSON.print(f, d, 4)
         end
     end
     return name
+end
+        
+function save_code(folder, problem::GraphProblem)
+    # write tensor network contraction pattern
+    filename = joinpath(folder, "tensornetwork.json")
+    GraphTensorNetworks.writejson(filename, problem.code)
+end
+function load_code(config::GraphProblemConfig, folder)
+    # write tensor network contraction pattern
+    filename = joinpath(folder, "tensornetwork.json")
+    code = GraphTensorNetworks.readjson(filename)
+    return instantiate(config, code)
+end
+
+for (PT, FS) in [(:IndependentSet, [:graph, :weights]), (:MaximalIS, [:graph, :weights]), (:MaxCut, [:graph, :weights]), (:Coloring, [:graph]),
+    (:PaintShop, [:sequence]), (:Satisfiability, [:cnf]), (:Matching. [:graph, :weights]), :(DominatingSet, [:graph])]
+    @eval parameter_names(::Type{T}) where T<:$PT = $FS
+end
+function dump_args(config::PT) where PT<:GraphProblemConfig
+    return Dict{String,Any}(
+        "type" => string(config.type),
+        "graph" => dump_args(config.graph),
+        "weights" => config.weights isa NoWeight ? Int[] : config.weights,
+        "openvertices" => collect(config.openvertices),
+    )
+end
+function dump_args(g::SimpleGraph)
+    return Dict{String, Any}(
+        "ne" => g.ne,
+        "fadjlist" => g.fadjlist
+    )
+end
+
+function load_problem(graph, ::Type{P}, args...) where P<:GraphProblem
 end
 
 function saveconfigs(folderout, sizes, configs::AbstractVector{<:Union{ConfigEnumerator, TreeConfigEnumerator}})
