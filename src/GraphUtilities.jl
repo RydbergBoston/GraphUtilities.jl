@@ -5,7 +5,8 @@ using JSON, DelimitedFiles
 using Serialization
 using Configurations, Random
 
-export GraphProblemConfig, instantiate
+export GraphProblemConfig, instantiate, foldername
+export SmallGraphConfig, DiagGraphConfig, SquareGraphConfig, RegularGraphConfig
 
 include("config.jl")
 include("fileio.jl")

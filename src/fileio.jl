@@ -11,7 +11,7 @@
 function foldername(basefolder::String, config::GraphProblemConfig; create, prefix="")
     # create a parameter dict
     # use the hash of dictionary as the folder name
-    name = joinpath(basefolder, prefix * string(hash(config)))
+    name = joinpath(basefolder, prefix * unique_string(config))
 
     # create folder
     if create && !isdir(name)

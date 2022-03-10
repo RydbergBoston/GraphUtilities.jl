@@ -3,12 +3,14 @@ using Configurations, GraphTensorNetworks, Random
 @option struct SmallGraphConfig
     name::String
 end
+unique_string(g::SmallGraphConfig) = g.name
 
 @option struct RegularGraphConfig
     size::Int
     degree::Int   # for d-regular graph
     seed::Int=1
 end
+unique_string(g::RegularGraphConfig) = "Regular$(g.size)d$(g.degree)seed$(g.seed)"
 
 @option struct DiagGraphConfig
     m::Int
@@ -16,6 +18,7 @@ end
     filling::Float64
     seed::Int=1
 end
+unique_string(g::DiagGraphConfig) = "Diag$(g.m)x$(g.n)f$(g.filling)seed$(g.seed)"
 
 @option struct SquareGraphConfig
     m::Int
@@ -23,6 +26,7 @@ end
     filling::Float64
     seed::Int=1
 end
+unique_string(g::SquareGraphConfig) = "Square$(g.m)x$(g.n)f$(g.filling)seed$(g.seed)"
 
 Configurations.type_alias(::Type{RegularGraphConfig}) = "regular"
 Configurations.type_alias(::Type{DiagGraphConfig}) = "diag"
@@ -37,8 +41,17 @@ Configurations.type_alias(::Type{SmallGraphConfig}) = "small"
 end
 
 Base.hash(gc::GraphProblemConfig) = hash((gc.problem, gc.graph, gc.weights, gc.openvertices))
-
-Configurations.from_dict(::Type{GraphProblemConfig}, ::Type{Symbol}, s) = Symbol(s)
+function unique_string(config::GraphProblemConfig)
+    s = "$(config.problem)_$(unique_string(config.graph))"
+    if config.weights !== nothing
+        s *= "_w$(unique_string(config.weights))"
+    end
+    if !isempty(config.openvertices)
+        s *= "_o$(unique_string(config.openvertices))"
+    end
+    return s
+end
+unique_string(v::AbstractVector) = string(hash(v))
 
 const problem_list = Dict{String,Any}(
     "IndependentSet" => IndependentSet,
