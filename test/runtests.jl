@@ -13,8 +13,15 @@ using Test
     folder2 = GraphUtilities.foldername("data", config; create=false)
     @test folder2 == folder
 
-    # save load configs (table)
+    # save load problem code
     gp = instantiate(config)
+    GraphUtilities.save_code(folder, gp)
+    gp2 = GraphUtilities.load_code(config, folder)
+    for field in fieldnames(typeof(gp))
+        @test getfield(gp, field) == getfield(gp2, field)
+    end
+
+    # save load configs (table)
     prop = ConfigsMax(; tree_storage=false)
     res = solve(gp, prop)[]
     fc = joinpath(folder, "table")

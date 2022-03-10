@@ -58,10 +58,6 @@ function foldername(basefolder::String, config::GraphProblemConfig; create, pref
     return name
 end
         
-function load_problem(foldername::String, config::GraphProblemConfig)
-    instantiate(config, load_code(config, foldername))
-end
-
 function dump_args(config::PT) where PT<:GraphProblemConfig
     return Dict{String,Any}(
         "type" => string(config.type),
