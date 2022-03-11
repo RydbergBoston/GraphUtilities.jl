@@ -53,7 +53,7 @@ function unique_string(config::GraphProblemConfig)
 end
 unique_string(v::AbstractVector) = string(hash(v))
 
-const problem_list = Dict{String,Any}(
+const problem_dict = Dict{String,Any}(
     "IndependentSet" => IndependentSet,
     "MaximalIS" => MaximalIS,
     "DominatingSet" => DominatingSet,
@@ -61,7 +61,7 @@ const problem_list = Dict{String,Any}(
     "Coloring{3}" => Coloring{3},
     "Matching" => Matching,
 )
-parseproblem(s::String) = problem_list[s]
+parseproblem(s::String) = problem_dict[s]
 function parsegraph(s)
     if s isa DiagGraphConfig   # diagonal coupled square lattice
         Random.seed!(s.seed)
@@ -98,3 +98,51 @@ function instantiate(config::GraphProblemConfig, code)
     end
 end
 
+unique_string(::SingleConfigMax{K}) where K = "SingleConfigMax$K"
+unique_string(::SingleConfigMin{K}) where K = "SingleConfigMin$K"
+unique_string(::SizeMax{K}) where K = "SizeMax$K"
+unique_string(::SizeMin{K}) where K = "SizeMin$K"
+unique_string(::ConfigsMax{K,B,true}) where {K,B} = "ConfigsMaxTree$K"
+unique_string(::ConfigsMin{K,B,true}) where {K,B} = "ConfigsMinTree$K"
+unique_string(::ConfigsMax{K,B,false}) where {K,B} = "ConfigsMax$K"
+unique_string(::ConfigsMin{K,B,false}) where {K,B} = "ConfigsMin$K"
+unique_string(::CountingMax{K}) where K = "CountingMax$K"
+unique_string(::CountingMin{K}) where K = "CountingMin$K"
+unique_string(::ConfigsAll{true}) = "ConfigsAllTree"
+unique_string(::ConfigsAll{false}) = "ConfigsAll"
+unique_string(::CountingAll) = "CountingAll"
+unique_string(::GraphPolynomial) = "GraphPolynomial"
+
+property_dict = Dict{String,Any}(
+    "SizeMax" => SizeMax,
+    "SizeMin" => SizeMin,
+    "SingleConfigMax" => SingleConfigMax,
+    "SingleConfigMin" => SingleConfigMin,
+    "ConfigsMax" => ConfigsMax,
+    "ConfigsMin" => ConfigsMin,
+    "ConfigsAll" => ConfigsAll,
+    "GraphPolynomial" => GraphPolynomial,
+    "CountingMax" => CountingMax,
+    "CountingMin" => CountingMin,
+    "CountingAll" => CountingAll,
+)
+
+function parseproperty(property::String)
+    m1 = match(r"(\w+)(\d+)", property)
+    if m1 === nothing
+        m2 = match(r"(\w+)Tree", property)
+        if m2 === nothing
+            return property_dict[property]()
+        else
+            return property_dict[m2[1]](; tree_storage=true)
+        end
+    else
+        m2 = match(r"(\w+)Tree", m1[1])
+        K = parse(Int, m1[2])
+        if m2 === nothing
+            return property_dict[m1[1]](K)
+        else
+            return property_dict[m2[1]](K; tree_storage=true)
+        end
+    end
+end

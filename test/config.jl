@@ -1,5 +1,5 @@
 using Test, GraphUtilities, GraphTensorNetworks
-using GraphUtilities: parsegraph, parseproblem, RegularGraphConfig, to_toml, from_toml
+using GraphUtilities: parsegraph, parseproblem, RegularGraphConfig, to_toml, from_toml, parseproperty
 
 @testset "parse config" begin
     gc = RegularGraphConfig(; size=10, degree=3)
@@ -13,3 +13,19 @@ using GraphUtilities: parsegraph, parseproblem, RegularGraphConfig, to_toml, fro
     @test hash(gp) == hash(gp2)
 end
 
+@testset "parse property" begin
+    @test parseproperty("SizeMax2") == SizeMax(2)
+    @test parseproperty("SizeMax") == SizeMax()
+    @test parseproperty("ConfigsMax2") == ConfigsMax(2)
+    @test parseproperty("ConfigsMin2") == ConfigsMin(2)
+    @test parseproperty("SingleConfigMax3") == SingleConfigMax(3)
+    @test parseproperty("SingleConfigMin3") == SingleConfigMin(3)
+    @test parseproperty("ConfigsAll") == ConfigsAll()
+    @test parseproperty("GraphPolynomial") == GraphPolynomial()
+    @test parseproperty("CountingMax") == CountingMax()
+    @test parseproperty("CountingMin4") == CountingMin(4)
+    @test parseproperty("CountingAll") == CountingAll()
+    @test parseproperty("ConfigsMaxTree3") == ConfigsMax(3; tree_storage=true)
+    @test parseproperty("ConfigsMinTree3") == ConfigsMin(3; tree_storage=true)
+    @test parseproperty("ConfigsAllTree") == ConfigsAll(; tree_storage=true)
+end

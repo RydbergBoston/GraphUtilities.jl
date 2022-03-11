@@ -68,7 +68,7 @@ function loadconfigs(folderin, sizes; tree_storage::Bool, bitlength::Int)
 end
 
 function save_property(folder::String, property::GraphTensorNetworks.AbstractProperty, data)
-    fd = joinpath(folder, "$(typeof(property)).dat")
+    fd = joinpath(folder, "$(unique_string(property)).dat")
     if property isa SizeMax{1} || property isa SizeMin{1}
         writedlm(fd, data.n)
     elseif property isa SizeMax || property isa SizeMin
@@ -118,7 +118,7 @@ get_t(::ConfigsMin{K,B,T}) where {K,B,T} = T
 get_t(::ConfigsAll{T}) where {T} = T
 
 function load_property(folder::String, property::GraphTensorNetworks.AbstractProperty; T=Float64)
-    fd = joinpath(folder, "$(typeof(property)).dat")
+    fd = joinpath(folder, "$(unique_string(property)).dat")
     if property isa SizeMax{1} || property isa SizeMin{1}
         return Tropical(readdlm(fd, T)[])
     elseif property isa SizeMax || property isa SizeMin

@@ -1,50 +1,82 @@
 using Comonicon
 using GraphUtilities, GraphTensorNetworks
 
-@enum GraphProblemTypes IndependentSet
+function mkdir_and_dumpcode(datafolder, config; ntrials, niters, nslices, sc_weight, rw_weight, sc_target, prefix)
+    folder = foldername(datafolder, config; create=true, prefix)
+    instance = instantiate(config;
+        optimizer=TreeSA(; sc_target, sc_weight, ntrials, niters, rw_weight, nslices, βs=0.01:0.05:30),
+        simplifier=MergeGreedy()
+        )
+    GraphUtilities.save_code(folder, instance)
+end
 
 @cast function generate_smallgraph(problem::String, name::String;
     weights::Union{Nothing,Vector{Float64}}=nothing,
-    datafolder::String="data", prefix::String="")
+    datafolder::String="data", prefix::String="",
+    ntrials::Int=1, niters=10, nslices=1, sc_target=25, sc_weight=1.0, rw_weight=1.0,  # config TreeSA
+    )
     graph = SmallGraphConfig(name)
     config = GraphProblemConfig(; problem, graph, weights, openvertices=Int[])
-    foldername(datafolder, config; create=true, prefix)
+    mkdir_and_dumpcode(datafolder, config; ntrials, niters, nslices, sc_target, sc_weight, rw_weight, prefix)
 end
 
 @cast function generate_regular(problem::String, size::Int;
     degree=3, seed::Int=1,
     weights::Union{Nothing,Vector{Float64}}=nothing,
-    datafolder="data", prefix="")
+    datafolder="data", prefix="",
+    ntrials::Int=1, niters=10, nslices=1, sc_target=25, sc_weight=1.0, rw_weight=1.0,  # config TreeSA
+    )
     graph = RegularGraphConfig(; size, degree, seed)
     config = GraphProblemConfig(; problem, graph, weights, openvertices=Int[])
-    foldername(datafolder, config; create=true, prefix)
+    mkdir_and_dumpcode(datafolder, config; ntrials, niters, nslices, sc_target, sc_weight, rw_weight, prefix)
 end
 
 @cast function generate_diag(problem::String, n::Int, filling::Float64;
     m::Int=n, seed::Int=1,
     weights::Union{Nothing,Vector{Float64}}=nothing,
-    datafolder="data", prefix="")
+    datafolder="data", prefix="",
+    ntrials::Int=1, niters=10, nslices=1, sc_target=25, sc_weight=1.0, rw_weight=1.0,  # config TreeSA
+    )
     graph = DiagGraphConfig(; filling, m, n, seed)
     config = GraphProblemConfig(; problem, graph, weights, openvertices=Int[])
-    foldername(datafolder, config; create=true, prefix)
+    mkdir_and_dumpcode(datafolder, config; ntrials, niters, nslices, sc_target, sc_weight, rw_weight, prefix)
 end
 
 @cast function generate_square(problem::String, n::Int, filling::Float64;
     m::Int=n, seed::Int=1,
     weights::Union{Nothing,Vector{Float64}}=nothing,
-    datafolder="data", prefix="")
+    datafolder="data", prefix="",
+    ntrials::Int=1, niters=10, nslices=1, sc_target=25, sc_weight=1.0, rw_weight=1.0,  # config TreeSA
+    )
     graph = SquareGraphConfig(; filling, m, n, seed)
     config = GraphProblemConfig(; problem, graph, weights, openvertices=Int[])
-    foldername(datafolder, config; create=true, prefix)
+    mkdir_and_dumpcode(datafolder, config; ntrials, niters, nslices, sc_target, sc_weight, rw_weight, prefix)
 end
 
-@cast function generate_fromtemplate(problem::String, name::Symbol, weights=NoWeight(), datafolder="data", prefix="$(graphname)_n$(n)_seed$(seed)_")
-    g = generate_graph(graphname, size, seed)
-    config = GraphProblemConfig(eval(Meta.parse(problem)), g; weights, openvertices=())
-    foldername(datafolder, config; create=true, prefix)
+function load_and_compute(datafolder, config, property; prefix)
+    folder = foldername(datafolder, config; create=false, prefix)
+    code = GraphUtilities.load_code(config, folder)
+    instance = instantiate(config, code)
+    res = solve(instance, property)[]
+    save_property(datafolder, property, res)
 end
 
-@cast function compute()
+@cast function compute_regular(problem::String, size::Int, property::String;
+    degree=3, seed::Int=1,
+    weights::Union{Nothing,Vector{Float64}}=nothing,
+    datafolder="data", prefix="")
+    graph = RegularGraphConfig(; size, degree, seed)
+    config = GraphProblemConfig(; problem, graph, weights, openvertices=Int[])
+    load_and_compute(datafolder, config, GraphUtilities.parseproperty(property); prefix)
+end
+
+@cast function compute_diag(problem::String, n::Int, filling::Float64, property;
+    m::Int=n, seed::Int=1,
+    weights::Union{Nothing,Vector{Float64}}=nothing,
+    datafolder="data", prefix="")
+    graph = DiagGraphConfig(; filling, m, n, seed)
+    config = GraphProblemConfig(; problem, graph, weights, openvertices=Int[])
+    load_and_compute(datafolder, config, GraphUtilities.parseproperty(property); prefix)
 end
 
 @main
