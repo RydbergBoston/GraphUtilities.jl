@@ -69,6 +69,7 @@ end
 
 function save_property(folder::String, property::GraphTensorNetworks.AbstractProperty, data)
     fd = joinpath(folder, "$(unique_string(property)).dat")
+    @info "saving result to file/folder: $(fd)"
     if property isa SizeMax{1} || property isa SizeMin{1}
         writedlm(fd, data.n)
     elseif property isa SizeMax || property isa SizeMin
