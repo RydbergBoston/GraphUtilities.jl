@@ -39,7 +39,7 @@ function load_code(config::GraphProblemConfig, folder)
     filename = joinpath(folder, "tensornetwork.json")
     @info "loading contraction tree from: $(filename)"
     code = GraphTensorNetworks.readjson(filename)
-    return instantiate(config, code)
+    return problem_instance(config, code)
 end
 
 function saveconfigs(folderout, sizes, configs::AbstractVector{<:Union{ConfigEnumerator, TreeConfigEnumerator}})

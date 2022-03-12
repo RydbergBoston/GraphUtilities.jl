@@ -79,7 +79,7 @@ function parsegraph(s)
     end
 end
 
-function instantiate(config::GraphProblemConfig; kwargs...)
+function problem_instance(config::GraphProblemConfig; kwargs...)
     PT = parseproblem(config.problem)
     if PT <: Matching || PT <: Coloring
         PT(parsegraph(config.graph); openvertices=config.openvertices, kwargs...)
@@ -88,7 +88,7 @@ function instantiate(config::GraphProblemConfig; kwargs...)
         PT(parsegraph(config.graph); weights, openvertices=config.openvertices, kwargs...)
     end
 end
-function instantiate(config::GraphProblemConfig, code)
+function problem_instance(config::GraphProblemConfig, code)
     PT = parseproblem(config.problem)
     if PT <: Matching || PT <: Coloring
         PT(code, parsegraph(config.graph))

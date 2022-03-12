@@ -5,7 +5,7 @@ using JSON, DelimitedFiles
 using Serialization
 using Configurations, Random
 
-export GraphProblemConfig, instantiate, foldername
+export GraphProblemConfig, problem_instance, foldername
 export SmallGraphConfig, DiagGraphConfig, SquareGraphConfig, RegularGraphConfig
 export save_property, load_property
 
