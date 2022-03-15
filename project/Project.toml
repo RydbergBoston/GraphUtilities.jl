@@ -1,0 +1,10 @@
+[deps]
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+Comonicon = "863f3e99-da2a-4334-8734-de3dacbe5542"
+GraphTensorNetworks = "0978c8c2-34f6-49c7-9826-ea2cc20dabd2"
+
+[compat]
+GraphTensorNetworks = "0.2"
+CUDA = "3.8"
+Comonicon = "0.12"
+julia = "1"

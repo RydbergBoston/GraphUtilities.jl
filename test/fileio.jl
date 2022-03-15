@@ -15,7 +15,7 @@ using Test
     @test folder2 == folder
 
     # save load problem code
-    gp = instantiate(config)
+    gp = problem_instance(config)
     GraphUtilities.save_code(folder, gp)
     gp2 = GraphUtilities.load_code(config, folder)
     for field in fieldnames(typeof(gp))
@@ -58,7 +58,7 @@ end
     folder = GraphUtilities.foldername("data", config; create=true)
 
     # instantiate a graph problem
-    gp = instantiate(config)
+    gp = problem_instance(config)
     GraphUtilities.save_code(folder, gp)
     gp2 = GraphUtilities.load_code(config, folder)
 

@@ -79,12 +79,12 @@ function parsegraph(s)
     end
 end
 
-function instantiate(config::GraphProblemConfig; kwargs...)
+function problem_instance(config::GraphProblemConfig; kwargs...)
     PT = parseproblem(config.problem)
     weights = config.weights === nothing ? NoWeight() : config.weights
     PT(parsegraph(config.graph); weights, openvertices=config.openvertices, kwargs...)
 end
-function instantiate(config::GraphProblemConfig, code)
+function problem_instance(config::GraphProblemConfig, code)
     PT = parseproblem(config.problem)
     weights = config.weights === nothing ? NoWeight() : config.weights
     PT(code, parsegraph(config.graph), weights)
