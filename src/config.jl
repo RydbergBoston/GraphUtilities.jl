@@ -81,21 +81,13 @@ end
 
 function instantiate(config::GraphProblemConfig; kwargs...)
     PT = parseproblem(config.problem)
-    if PT <: Matching || PT <: Coloring
-        PT(parsegraph(config.graph); openvertices=config.openvertices, kwargs...)
-    else
-        weights = config.weights === nothing ? NoWeight() : config.weights
-        PT(parsegraph(config.graph); weights, openvertices=config.openvertices, kwargs...)
-    end
+    weights = config.weights === nothing ? NoWeight() : config.weights
+    PT(parsegraph(config.graph); weights, openvertices=config.openvertices, kwargs...)
 end
 function instantiate(config::GraphProblemConfig, code)
     PT = parseproblem(config.problem)
-    if PT <: Matching || PT <: Coloring
-        PT(code, parsegraph(config.graph))
-    else
-        weights = config.weights === nothing ? NoWeight() : config.weights
-        PT(code, parsegraph(config.graph), weights)
-    end
+    weights = config.weights === nothing ? NoWeight() : config.weights
+    PT(code, parsegraph(config.graph), weights)
 end
 
 unique_string(::SingleConfigMax{K}) where K = "SingleConfigMax$K"

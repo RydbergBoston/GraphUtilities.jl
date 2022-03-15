@@ -1,6 +1,7 @@
 using Comonicon
 using GraphUtilities, GraphTensorNetworks
 
+########################### GENERATE ###################################
 function mkdir_and_dumpcode(datafolder, config; ntrials, niters, nslices, sc_weight, rw_weight, sc_target, prefix)
     folder = foldername(datafolder, config; create=true, prefix)
     instance = instantiate(config;
@@ -60,6 +61,7 @@ function load_and_compute(datafolder, config, property; prefix)
     save_property(folder, property, res)
 end
 
+########################### COMPUTE ###################################
 @cast function compute_regular(problem::String, size::Int, property::String;
     degree=3, seed::Int=1,
     weights::Union{Nothing,Vector{Float64}}=nothing,
@@ -93,6 +95,26 @@ end
     graph = SmallGraphConfig(name)
     config = GraphProblemConfig(; problem, graph, weights, openvertices=Int[])
     load_and_compute(datafolder, config, GraphUtilities.parseproperty(property); prefix)
+end
+
+########################### OGP ###################################
+
+@cast function ogp_diag(n::Int;
+        seed::Int=1,
+        datafolder="data",
+        prefix="")
+    graph = DiagGraphConfig(; filling=0.8, n=n, m=n, seed)
+    config = GraphProblemConfig(; "IndependentSet", graph, weights=nothing, openvertices=Int[])
+    load_and_compute(datafolder, config, ConfigMax(K; tree_storage=true, bounded=true); prefix)
+end
+
+@cast function ogp_degree(size::Int;
+        degree=3, seed::Int=1,
+        datafolder="data",
+        prefix="")
+    graph = RegularGraphConfig(; degree, size, seed)
+    config = GraphProblemConfig(; "IndependentSet", graph, weights=nothing, openvertices=Int[])
+    load_and_compute(datafolder, config, ConfigMax(K; tree_storage=true, bounded=true); prefix)
 end
 
 @main
