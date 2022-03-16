@@ -190,6 +190,8 @@ function dict_deserialize_tree(id::UInt, d::Dict)
         return content
     else
         (tag, left, right) = content
-        return SumProductTree(tag, dict_deserialize_tree(left, d), dict_deserialize_tree(right, d))
+        t = SumProductTree(tag, dict_deserialize_tree(left, d), dict_deserialize_tree(right, d))
+        d[id] = t
+        return t
     end
 end

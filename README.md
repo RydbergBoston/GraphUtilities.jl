@@ -46,5 +46,11 @@ Check function `GraphUtilities.load_property` for details.
 
 (To be written)
 
+## Command examples
+1. compute overlap gap property for alpha = 0.1, 3-regular graph of size 110:10:150
+```bash
+$ julia project/run.jl ogp-regular 110 --seed=1 --seedstop=100 --sizestop=150 --sizestep=10
+```
+
 ## TODO
 1. support hdf5 to avoid small file storage.
