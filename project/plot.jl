@@ -1,11 +1,12 @@
 using Comonicon, PyPlot
 using DelimitedFiles
 
-@cast function hamming(which::String, n::Int, alpha::Float64)
+@cast function hamming(which::String, n::Int, alpha::Float64;
+            degree::Int=3)
     for seed=1:100
         @show n, seed
         if which == "regular"
-            folder = joinpath("data", "IndependentSet_Regular$(n)d3seed$(seed)")
+            folder = joinpath("data", "IndependentSet_Regular$(n)d$(degree)seed$(seed)")
         elseif which == "diag"
             folder = joinpath("data", "IndependentSet_Diag$(n)x$(n)f0.8seed$(seed)")
         else

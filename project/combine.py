@@ -3,8 +3,8 @@ from PIL import Image
 import numpy as np
 
 class PLT(object):
-    def combine(self, which, n, alpha):
-        f1 = os.path.join("data", "IndependentSet_Regular%dd3seed%d"%(n,1) if which == "regular" else "IndependentSet_Diag%dx%df0.8seed%d"%(n,n,1))
+    def combine(self, which, n, alpha, degree=3):
+        f1 = os.path.join("data", "IndependentSet_Regular%dd%dseed%d"%(n,degree,1) if which == "regular" else "IndependentSet_Diag%dx%df0.8seed%d"%(n,n,1))
         maxn = np.loadtxt(os.path.join(f1, "SizeMax1.dat")).item()
         K = np.ceil(maxn * alpha)
         image1 = Image.open(os.path.join(f1, 'hamming-K%d-n10000.png'%K))
@@ -15,7 +15,7 @@ class PLT(object):
         for i in range(10):
             for j in range(10):
                 seed = i*10+j+1
-                fi = os.path.join("data", "IndependentSet_Regular%dd3seed%d"%(n,seed) if which == "regular" else "IndependentSet_Diag%dx%df0.8seed%d"%(n,n,seed))
+                fi = os.path.join("data", "IndependentSet_Regular%dd%dseed%d"%(n,degree,seed) if which == "regular" else "IndependentSet_Diag%dx%df0.8seed%d"%(n,n,seed))
                 maxn = np.loadtxt(os.path.join(fi, "SizeMax1.dat")).item()
                 K = np.ceil(maxn * alpha)
                 filename = os.path.join(fi, 'hamming-K%d-n10000.png'%K)
