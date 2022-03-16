@@ -116,6 +116,8 @@ get_n(::ConfigEnumerator{N,S,C}) where {N,S,C} = N
 get_n(::TreeConfigEnumerator{N,S,C}) where {N,S,C} = N
 get_t(::ConfigsMax{K,B,T}) where {K,B,T} = T
 get_t(::ConfigsMin{K,B,T}) where {K,B,T} = T
+get_k(::ConfigsMax{K,B,T}) where {K,B,T} = K
+get_k(::ConfigsMin{K,B,T}) where {K,B,T} = K
 get_t(::ConfigsAll{T}) where {T} = T
 
 function load_property(folder::String, property::GraphTensorNetworks.AbstractProperty; T=Float64)
@@ -149,7 +151,8 @@ function load_property(folder::String, property::GraphTensorNetworks.AbstractPro
         end
         return ExtendedTropical{size(data, 1)}(orders)
     elseif property isa ConfigsMax || property isa ConfigsMin
-        sizes = vec(readdlm(joinpath(fd, "sizes.dat")))
+        K = get_k(property)
+        sizes = vec(readdlm(joinpath(fd, "sizes.dat")))[end-K+1:end]
         bitlength = Int(readdlm(joinpath(fd, "bitlength.dat"))[])
         data = loadconfigs(fd, sizes; tree_storage=get_t(property), bitlength=bitlength)
         if property isa ConfigsMax{1} || property isa ConfigsMin{1}
