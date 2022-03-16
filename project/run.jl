@@ -74,6 +74,7 @@ end
 function load_and_compute(datafolder, config, property; prefix, cudadevice)
     folder = foldername(datafolder, config; create=false, prefix)
     instance = GraphUtilities.load_code(config, folder)
+    println("time, space, RW complexitys are $(timespacereadwrite_complexity(instance))")
     if cudadevice >=0
         CUDA.device!(cudadevice)
     end
