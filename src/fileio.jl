@@ -42,7 +42,7 @@ function load_code(config::GraphProblemConfig, folder)
     return problem_instance(config, code)
 end
 
-function saveconfigs(folderout, sizes, configs::AbstractVector{<:Union{ConfigEnumerator, TreeConfigEnumerator}})
+function saveconfigs(folderout, sizes, configs::AbstractVector{<:Union{ConfigEnumerator, SumProductTree}})
     for (s, c) in zip(sizes, configs)
         fname = joinpath(folderout, "size_$(s).dat")
         if c isa ConfigEnumerator
@@ -113,7 +113,7 @@ function save_property(folder::String, property::GraphTensorNetworks.AbstractPro
 end
 get_s(::StaticElementVector{N,S,C}) where {N,S,C} = S
 get_n(::ConfigEnumerator{N,S,C}) where {N,S,C} = N
-get_n(::TreeConfigEnumerator{N,S,C}) where {N,S,C} = N
+get_n(::SumProductTree{OnehotVec{N,F}}) where {N,F} = N
 get_t(::ConfigsMax{K,B,T}) where {K,B,T} = T
 get_t(::ConfigsMin{K,B,T}) where {K,B,T} = T
 get_k(::ConfigsMax{K,B,T}) where {K,B,T} = K

@@ -7,3 +7,6 @@ _*.xml
 *.dat
 .vscode/
 project/Manifest.toml
+*.png
+*.jpg
+*.pdf

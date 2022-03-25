@@ -6,7 +6,7 @@ using Serialization
 using Configurations, Random
 
 export GraphProblemConfig, problem_instance, foldername
-export SmallGraphConfig, DiagGraphConfig, SquareGraphConfig, RegularGraphConfig
+export SmallGraphConfig, DiagGraphConfig, SquareGraphConfig, RegularGraphConfig, MISProjectGraphConfig, MappedRegularGraphConfig
 export save_property, load_property
 
 include("config.jl")
