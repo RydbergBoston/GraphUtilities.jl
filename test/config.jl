@@ -1,4 +1,4 @@
-using Test, GraphUtilities, GraphTensorNetworks
+using Test, GraphUtilities, GenericTensorNetworks
 using GraphUtilities: parsegraph, parseproblem, RegularGraphConfig, to_toml, from_toml, parseproperty
 
 @testset "parse config" begin

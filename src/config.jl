@@ -1,4 +1,4 @@
-using Configurations, GraphTensorNetworks, Random
+using Configurations, GenericTensorNetworks, Random
 
 @option struct SmallGraphConfig
     name::String

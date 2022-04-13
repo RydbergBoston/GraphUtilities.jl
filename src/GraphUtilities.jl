@@ -1,6 +1,6 @@
 module GraphUtilities
 
-using GraphTensorNetworks, Graphs
+using GenericTensorNetworks, Graphs
 using JSON, DelimitedFiles
 using Serialization
 using Configurations, Random

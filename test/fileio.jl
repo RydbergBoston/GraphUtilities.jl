@@ -1,4 +1,4 @@
-using GraphUtilities, Graphs, GraphTensorNetworks
+using GraphUtilities, Graphs, GenericTensorNetworks
 using GraphUtilities: save_property, load_property, SmallGraphConfig
 using Test
 

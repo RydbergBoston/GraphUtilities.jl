@@ -1,5 +1,5 @@
 using Comonicon
-using GraphUtilities, GraphTensorNetworks, CUDA
+using GraphUtilities, GenericTensorNetworks, CUDA
 using DelimitedFiles
 
 ########################### GENERATE ###################################

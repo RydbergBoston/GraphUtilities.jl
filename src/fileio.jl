@@ -31,14 +31,14 @@ function save_code(folder, problem::GraphProblem)
     # write tensor network contraction pattern
     filename = joinpath(folder, "tensornetwork.json")
     @info "saving contraction tree to: $(filename)"
-    GraphTensorNetworks.writejson(filename, problem.code)
+    GenericTensorNetworks.writejson(filename, problem.code)
 end
 
 function load_code(config::GraphProblemConfig, folder)
     # write tensor network contraction pattern
     filename = joinpath(folder, "tensornetwork.json")
     @info "loading contraction tree from: $(filename)"
-    code = GraphTensorNetworks.readjson(filename)
+    code = GenericTensorNetworks.readjson(filename)
     return problem_instance(config, code)
 end
 
@@ -67,7 +67,7 @@ function loadconfigs(folderin, sizes; tree_storage::Bool, bitlength::Int)
     return configs
 end
 
-function save_property(folder::String, property::GraphTensorNetworks.AbstractProperty, data)
+function save_property(folder::String, property::GenericTensorNetworks.AbstractProperty, data)
     fd = joinpath(folder, "$(unique_string(property)).dat")
     @info "saving result to file/folder: $(fd)"
     if property isa SizeMax{1} || property isa SizeMin{1}
@@ -120,7 +120,7 @@ get_k(::ConfigsMax{K,B,T}) where {K,B,T} = K
 get_k(::ConfigsMin{K,B,T}) where {K,B,T} = K
 get_t(::ConfigsAll{T}) where {T} = T
 
-function load_property(folder::String, property::GraphTensorNetworks.AbstractProperty; T=Float64)
+function load_property(folder::String, property::GenericTensorNetworks.AbstractProperty; T=Float64)
     fd = joinpath(folder, "$(unique_string(property)).dat")
     if property isa SizeMax{1} || property isa SizeMin{1}
         return Tropical(readdlm(fd, T)[])
@@ -175,7 +175,7 @@ deserialize_tree(filename::String) = dict_deserialize_tree(deserialize(filename)
 function dict_serialize_tree!(t::SumProductTree, d::Dict)
     id = objectid(t)
     if !haskey(d, id)
-        if t.tag === GraphTensorNetworks.LEAF || t.tag === GraphTensorNetworks.ZERO || t.tag == GraphTensorNetworks.ONE
+        if t.tag === GenericTensorNetworks.LEAF || t.tag === GenericTensorNetworks.ZERO || t.tag == GenericTensorNetworks.ONE
             d[id] = t
         else
             d[id] = (t.tag, objectid(t.left), objectid(t.right))
