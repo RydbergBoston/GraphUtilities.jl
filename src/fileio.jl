@@ -48,7 +48,7 @@ function saveconfigs(folderout, sizes, configs::AbstractVector{<:Union{ConfigEnu
         if c isa ConfigEnumerator
             save_configs(fname, c; format=:binary)
         else
-            serialize_tree(fname, c)
+            save_sumproduct(fname, c)
         end
     end
 end
@@ -58,7 +58,7 @@ function loadconfigs(folderin, sizes; tree_storage::Bool, bitlength::Int)
     for s in sizes
         fname = joinpath(folderin, "size_$(s).dat")
         push!(configs, if tree_storage
-                deserialize_tree(fname)
+                load_sumproduct(fname)
             else
                 load_configs(fname; format=:binary, bitlength=bitlength)
             end
@@ -168,33 +168,4 @@ function load_property(folder::String, property::GenericTensorNetworks.AbstractP
         error("unknown property: `$property`.")
     end
 
-end
-
-serialize_tree(filename::String, t::SumProductTree) = serialize(filename, dict_serialize_tree!(t, Dict{UInt,Any}()))
-deserialize_tree(filename::String) = dict_deserialize_tree(deserialize(filename)...)
-function dict_serialize_tree!(t::SumProductTree, d::Dict)
-    id = objectid(t)
-    if !haskey(d, id)
-        if t.tag === GenericTensorNetworks.LEAF || t.tag === GenericTensorNetworks.ZERO || t.tag == GenericTensorNetworks.ONE
-            d[id] = t
-        else
-            d[id] = (t.tag, objectid(t.left), objectid(t.right))
-            dict_serialize_tree!(t.left, d)
-            dict_serialize_tree!(t.right, d)
-        end
-    end
-    return id, d
-end
-
-function dict_deserialize_tree(id::UInt, d::Dict)
-    @assert haskey(d, id)
-    content = d[id]
-    if content isa SumProductTree
-        return content
-    else
-        (tag, left, right) = content
-        t = SumProductTree(tag, dict_deserialize_tree(left, d), dict_deserialize_tree(right, d))
-        d[id] = t
-        return t
-    end
 end
