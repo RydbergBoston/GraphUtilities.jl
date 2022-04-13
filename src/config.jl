@@ -1,18 +1,34 @@
 using Configurations, GenericTensorNetworks, Random
+using UnitDiskMapping
 
-@option struct SmallGraphConfig
+abstract type AbstractGraphConfig end
+
+@option struct SmallGraphConfig <: AbstractGraphConfig
     name::String
 end
 unique_string(g::SmallGraphConfig) = g.name
 
-@option struct RegularGraphConfig
+@option struct RegularGraphConfig <: AbstractGraphConfig
     size::Int
     degree::Int   # for d-regular graph
     seed::Int=1
 end
 unique_string(g::RegularGraphConfig) = "Regular$(g.size)d$(g.degree)seed$(g.seed)"
 
-@option struct DiagGraphConfig
+@option struct MappedRegularGraphConfig <: AbstractGraphConfig
+    size::Int
+    degree::Int   # for d-regular graph
+    seed::Int=1
+end
+unique_string(g::MappedRegularGraphConfig) = "MappedRegular$(g.size)d$(g.degree)seed$(g.seed)"
+
+@option struct MISProjectGraphConfig <: AbstractGraphConfig
+    n::Int
+    index::Int=1
+end
+unique_string(g::MISProjectGraphConfig) = "MISProject$(g.n)index$(g.index)"
+
+@option struct DiagGraphConfig <: AbstractGraphConfig
     m::Int
     n::Int
     filling::Float64
@@ -20,7 +36,7 @@ unique_string(g::RegularGraphConfig) = "Regular$(g.size)d$(g.degree)seed$(g.seed
 end
 unique_string(g::DiagGraphConfig) = "Diag$(g.m)x$(g.n)f$(g.filling)seed$(g.seed)"
 
-@option struct SquareGraphConfig
+@option struct SquareGraphConfig <: AbstractGraphConfig
     m::Int
     n::Int
     filling::Float64
@@ -35,7 +51,7 @@ Configurations.type_alias(::Type{SmallGraphConfig}) = "small"
 
 @option struct GraphProblemConfig
     problem::String
-    graph::Union{RegularGraphConfig, DiagGraphConfig, SquareGraphConfig, SmallGraphConfig}
+    graph::AbstractGraphConfig
     weights::Union{Nothing, Vector} = nothing
     openvertices::Vector{Int} = Int[]
 end
@@ -72,8 +88,22 @@ function parsegraph(s)
     elseif s isa RegularGraphConfig
         Random.seed!(s.seed)
         random_regular_graph(s.size, s.degree)
+    elseif s isa MISProjectGraphConfig
+        folder = joinpath(homedir(), ".julia/dev/TropicalMIS", "project", "data")
+        fname = joinpath(folder, "mis_degeneracy2_L$(s.n).dat")
+        mask = Matrix{Bool}(reshape(readdlm(fname)[s.index+1,5:end], s.n, s.n))
+        diagonal_coupled_graph(mask)
     elseif s isa SmallGraphConfig
         smallgraph(Symbol(s.name))
+    elseif s isa MappedRegularGraphConfig
+        Random.seed!(s.seed)
+        graph = random_regular_graph(s.size, s.degree)
+        if nv(graph) <= 50
+            res = map_graph(graph)
+        else
+            res = map_graph(graph; vertex_order=Greedy(; nrepeat=100))
+        end
+        SimpleGraph(res.grid_graph)
     else
         throw(ArgumentError("graph type `$(typeof(s))` is not defined!"))
     end

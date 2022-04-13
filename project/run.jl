@@ -1,5 +1,5 @@
 using Comonicon
-using GraphUtilities, GenericTensorNetworks, CUDA
+using GraphUtilities, GenericTensorNetworks, CUDA, Graphs
 using DelimitedFiles
 
 ########################### GENERATE ###################################
@@ -9,18 +9,24 @@ function mkdir_and_dumpcode(datafolder, config; ntrials, niters, nslices, sc_wei
         optimizer=TreeSA(; sc_target, sc_weight, ntrials, niters, rw_weight, nslices, βs=0.01:0.05:30),
         simplifier=MergeGreedy()
         )
+    println("graph size = $(nv(instance.graph))")
+    println("time, space, RW complexitys are $(timespacereadwrite_complexity(instance))")
     GraphUtilities.save_code(folder, instance)
 end
 
 function get_graph(graphname, size; degree, filling, seed)
     if graphname=="diag"
-        graph = DiagGraphConfig(; filling, n=size, m=size, seed=seed)
+        return DiagGraphConfig(; filling, n=size, m=size, seed=seed)
     elseif graphname == "regular"
-        graph = RegularGraphConfig(; degree, size=size, seed=seed)
+        return RegularGraphConfig(; degree, size=size, seed=seed)
     elseif graphname == "square"
-        graph = SquareGraphConfig(; filling, m=size, n=size, seed=seed)
+        return SquareGraphConfig(; filling, m=size, n=size, seed=seed)
+    elseif graphname == "misproject"
+        return MISProjectGraphConfig(; n=size, index=seed)
+    elseif graphname == "mapped-regular"
+        return MappedRegularGraphConfig(; degree, size, seed)
     else
-        graph = SmallGraphConfig(name)
+        return SmallGraphConfig(name)
     end
 end
 
@@ -111,7 +117,7 @@ end
     degree::Int=3, seed::Int=1, seedstop::Int=seed,
     datafolder::String="data", overwrite::Bool=false,
     alpha::Float64=0.1, alpha0::Float64=alpha,
-    prefix::String="", nsample = 10000)
+    prefix::String="", nsample::Int = 10000)
     for sz in size:sizestep:sizestop, sd in seed:seedstop
         println("seed = $sd, size = $(sz)")
         graph = get_graph(graphname, sz; degree, filling, seed=sd)
@@ -131,6 +137,30 @@ end
         else
             tree = sum(configs.coeffs[end-Kreal+1:end])
         end
+        samples = generate_samples(tree, 2*nsample);
+        hd = hamming_distribution(samples[1:nsample], samples[nsample+1:2*nsample])
+        writedlm(fd, hd)
+    end
+end
+
+@cast function hamming1(graphname::String, size::Int, K::Int;
+    sizestop::Int=size, sizestep::Int=1,
+    filling::Float64=0.8,
+    degree::Int=3, seed::Int=1, seedstop::Int=seed,
+    datafolder::String="data", overwrite::Bool=false,
+    prefix::String="", nsample::Int = 10000)
+    for sz in size:sizestep:sizestop, sd in seed:seedstop
+        println("seed = $sd, size = $(sz)")
+        graph = get_graph(graphname, sz; degree, filling, seed=sd)
+        config = GraphProblemConfig(; problem="IndependentSet", graph, weights=nothing, openvertices=Int[])
+        folder = foldername(datafolder, config; create=false, prefix)
+        fd = joinpath(folder, "hamming-K$(K)-n$(nsample).dat")
+        if !overwrite && ispath(fd) 
+            println("Hamming distance file exists for MISs of `K = $K`: $fd")
+        end
+        configs = load_property(folder, ConfigsMax(K; tree_storage=true, bounded=true))
+        println("Hamming for MISs of size `$(configs.maxorder-K+1)`")
+        tree = configs.coeffs[1]
         samples = generate_samples(tree, 2*nsample);
         hd = hamming_distribution(samples[1:nsample], samples[nsample+1:2*nsample])
         writedlm(fd, hd)
