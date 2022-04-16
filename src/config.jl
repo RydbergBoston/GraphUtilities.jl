@@ -1,5 +1,4 @@
 using Configurations, GenericTensorNetworks, Random
-using UnitDiskMapping
 
 abstract type AbstractGraphConfig end
 
@@ -49,9 +48,9 @@ Configurations.type_alias(::Type{DiagGraphConfig}) = "diag"
 Configurations.type_alias(::Type{SquareGraphConfig}) = "square"
 Configurations.type_alias(::Type{SmallGraphConfig}) = "small"
 
-@option struct GraphProblemConfig
+@option struct GraphProblemConfig{GC<:AbstractGraphConfig}
     problem::String
-    graph::AbstractGraphConfig
+    graph::GC
     weights::Union{Nothing, Vector} = nothing
     openvertices::Vector{Int} = Int[]
 end

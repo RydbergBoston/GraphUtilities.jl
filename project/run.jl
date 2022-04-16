@@ -26,7 +26,7 @@ function get_graph(graphname, size; degree, filling, seed)
     elseif graphname == "mapped-regular"
         return MappedRegularGraphConfig(; degree, size, seed)
     else
-        return SmallGraphConfig(name)
+        return SmallGraphConfig(graphname)
     end
 end
 
