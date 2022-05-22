@@ -70,26 +70,26 @@ end
 function save_property(folder::String, property::GenericTensorNetworks.AbstractProperty, data)
     fd = joinpath(folder, "$(unique_string(property)).dat")
     @info "saving result to file/folder: $(fd)"
-    if property isa SizeMax{1} || property isa SizeMin{1}
+    if property isa SizeMax{Single} || property isa SizeMin{Single}
         writedlm(fd, data.n)
     elseif property isa SizeMax || property isa SizeMin
         writedlm(fd, getfield.(data.orders, :n))
     elseif property isa CountingAll
         writedlm(fd, data)
-    elseif property isa CountingMax{1} || property isa CountingMin{1}
+    elseif property isa CountingMax{Single} || property isa CountingMin{Single}
         writedlm(fd, [data.n, data.c]')
     elseif property isa CountingMax || property isa CountingMin
         K = length(data.coeffs)
         writedlm(fd, hcat(collect.(zip(data.maxorder-K+1:data.maxorder, data.coeffs))...)')
     elseif property isa GraphPolynomial
         writedlm(fd, data.coeffs)
-    elseif property isa SingleConfigMax{1} || property isa SingleConfigMin{1}
+    elseif property isa SingleConfigMax{Single} || property isa SingleConfigMin{Single}
         c = data.c.data
         writedlm(fd, [data.n, get_s(c), c...])
     elseif property isa SingleConfigMax || property isa SingleConfigMin
         writedlm(fd, vcat([[di.n, get_s(di.c.data), di.c.data...]' for di in data.orders]...))
     elseif property isa ConfigsMax || property isa ConfigsMin
-        if property isa ConfigsMax{1} || property isa ConfigsMin{1}
+        if property isa ConfigsMax{Single} || property isa ConfigsMin{Single}
             sizes = [data.n]
             bls = get_n(data.c)
             configs = [data.c]
@@ -122,14 +122,14 @@ get_t(::ConfigsAll{T}) where {T} = T
 
 function load_property(folder::String, property::GenericTensorNetworks.AbstractProperty; T=Float64)
     fd = joinpath(folder, "$(unique_string(property)).dat")
-    if property isa SizeMax{1} || property isa SizeMin{1}
+    if property isa SizeMax{Single} || property isa SizeMin{Single}
         return Tropical(readdlm(fd, T)[])
     elseif property isa SizeMax || property isa SizeMin
         orders = readdlm(fd, T)
         return ExtendedTropical{length(orders)}(Tropical.(vec(orders)))
     elseif property isa CountingAll
         return readdlm(fd, T)[]
-    elseif property isa CountingMax{1} || property isa CountingMin{1}
+    elseif property isa CountingMax{Single} || property isa CountingMin{Single}
         n, c = vec(readdlm(fd, T))
         return CountingTropical(n, c)
     elseif property isa CountingMax || property isa CountingMin
@@ -137,7 +137,7 @@ function load_property(folder::String, property::GenericTensorNetworks.AbstractP
         return TruncatedPoly((data[:,2]...,), data[end,1])
     elseif property isa GraphPolynomial
         return Polynomial(vec(readdlm(fd)))
-    elseif property isa SingleConfigMax{1} || property isa SingleConfigMin{1}
+    elseif property isa SingleConfigMax{Single} || property isa SingleConfigMin{Single}
         data = readdlm(fd)
         n, s = data[1], Int(data[2])
         return CountingTropical(n, ConfigSampler(StaticElementVector(2^s, Int.(data[3:end]))))
@@ -155,7 +155,7 @@ function load_property(folder::String, property::GenericTensorNetworks.AbstractP
         sizes = vec(readdlm(joinpath(fd, "sizes.dat")))[end-K+1:end]
         bitlength = Int(readdlm(joinpath(fd, "bitlength.dat"))[])
         data = loadconfigs(fd, sizes; tree_storage=get_t(property), bitlength=bitlength)
-        if property isa ConfigsMax{1} || property isa ConfigsMin{1}
+        if property isa ConfigsMax{Single} || property isa ConfigsMin{Single}
             return CountingTropical(T(sizes[]), data[])
         else
             return TruncatedPoly((data...,), T(sizes[end]))

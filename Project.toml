@@ -14,7 +14,7 @@ Requires = "ae029012-a4dd-5104-9daa-d747884805df"
 
 [compat]
 Configurations = "0.17"
-GenericTensorNetworks = "1.0"
+GenericTensorNetworks = "1.0.2"
 Graphs = "1.6"
 JSON = "0.21"
 Requires = "1.3"

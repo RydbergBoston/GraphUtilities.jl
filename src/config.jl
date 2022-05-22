@@ -116,7 +116,7 @@ end
 function problem_instance(config::GraphProblemConfig, code)
     PT = parseproblem(config.problem)
     weights = config.weights === nothing ? NoWeight() : config.weights
-    PT(code, parsegraph(config.graph), weights)
+    PT(code, parsegraph(config.graph), weights, Dict{Int,Int}())   # fixed vertices type may be wrong
 end
 
 unique_string(::SingleConfigMax{K}) where K = "SingleConfigMax$K"
