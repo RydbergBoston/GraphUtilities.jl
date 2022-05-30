@@ -10,7 +10,7 @@ using Test
             "ConfigsMaxTree3", "ConfigsMin3",
             "ConfigsAll", "ConfigsAllTree"
         ]
-        res = GraphUtilities.json_solve(Dict(
+        res = GraphUtilities.application(Dict(
             "graph"=>Dict("nv"=>10, "edges"=>[[e.src, e.dst] for e in edges(smallgraph(:petersen))]),
             "problem"=>"MaximalIS", 
             "property"=>property,
@@ -30,7 +30,16 @@ using Test
             ),
             "cudadevice"=>-1
         ))
-        #@test res == Tropical(3.0)
-        @test GraphUtilities.tojson(res) isa Dict#Dict("size"=>3.0)
+        @test res isa Union{Dict, Vector}
     end
+    res = GraphUtilities.application(Dict(
+        "graph"=>Dict("nv"=>10, "edges"=>[[e.src, e.dst] for e in edges(smallgraph(:petersen))]),
+        "problem"=>"MaximalIS", 
+        "property"=>"SizeMin",
+    ))
+    @test_throws GraphUtilities.VerificationError GraphUtilities.application(Dict(
+        "graph"=>Dict("nv"=>10, "edges"=>[[e.src, e.dst] for e in edges(smallgraph(:petersen))]),
+        "problem"=>"MaximalIS", 
+        "property"=>"SizeMi",
+    ))
 end

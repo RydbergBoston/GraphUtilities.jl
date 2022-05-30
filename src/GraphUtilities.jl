@@ -3,6 +3,7 @@ module GraphUtilities
 using GenericTensorNetworks, Graphs
 using JSON, DelimitedFiles
 using Configurations, Random
+using LegibleLambdas
 
 using Requires
 function __init__()
@@ -17,5 +18,6 @@ export unified_solve
 include("config.jl")
 include("fileio.jl")
 include("json.jl")
+include("verify.jl")
 
 end

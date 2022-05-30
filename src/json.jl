@@ -1,14 +1,3 @@
-function mkdir_and_dumpcode(datafolder, config; ntrials, niters, nslices, sc_weight, rw_weight, sc_target, prefix)
-    folder = foldername(datafolder, config; create=true, prefix)
-    instance = problem_instance(config;
-        optimizer=TreeSA(; sc_target, sc_weight, ntrials, niters, rw_weight, nslices, βs=0.01:0.05:30),
-        simplifier=MergeGreedy()
-        )
-    println("graph size = $(nv(instance.graph))")
-    println("time, space, RW complexitys are $(timespacereadwrite_complexity(instance))")
-    GraphUtilities.save_code(folder, instance)
-end
-
 function get_graph(graphname, size; degree, filling, seed)
     if graphname=="diag"
         return DiagGraphConfig(; filling, n=size, m=size, seed=seed)
@@ -62,20 +51,20 @@ function loadjson_graph(dict)
 end
 
 function loadjson_optimizer(dict)
-    method = get(dict, "method", "GreedyMethod")
+    method = dict["method"]
     if method == "TreeSA"
         return TreeSA(;
-            sc_target=get(dict, "sc_target", 20),
-            sc_weight=get(dict, "sc_weight", 1.0),
-            rw_weight=get(dict, "rw_weight", 1.0),
-            ntrials=get(dict, "ntrials", 3),
-            niters=get(dict, "niters", 10),
-            nslices=get(dict, "nslices", 0),
-            βs=get(dict, "betas", 0.01:0.05:30)
+            sc_target=dict["sc_target"],
+            sc_weight=dict["sc_weight"],
+            rw_weight=dict["rw_weight"],
+            ntrials=dict["ntrials"],
+            niters=dict["niters"],
+            nslices=dict["nslices"],
+            βs=dict["betas"]
         )
     elseif method == "GreedyMethod"
         return GreedyMethod(;
-            nrepeat=get(dict, "nrepeat", 10)
+            nrepeat=dict["nrepeat"]
         )
     else
         error("")
@@ -84,20 +73,20 @@ end
 
 function json_solve(dict)
     graph = loadjson_graph(dict["graph"])
-    optimizer = loadjson_optimizer(get(dict, "optimizer", Dict()))
+    optimizer = loadjson_optimizer(dict["optimizer"])
     PROB = parseproblem(dict["problem"])
     property = parseproperty(dict["property"])
 
     instance = PROB(graph;
-            weights=get(dict,"weights", NoWeight()),
-            openvertices=get(dict, "openvertices", Int[]),
-            fixedvertices=get(dict, "fixedvertices", Dict()),
+            weights=get(dict, "weights", NoWeight()),  # weights is optional
+            openvertices=dict["openvertices"],
+            fixedvertices=dict["fixedvertices"],
             optimizer,
             simplifier=MergeGreedy()
         )
     println("time, space, RW complexitys are $(timespacereadwrite_complexity(instance))")
 
-    cudadevice = get(dict,"cudadevice",-1)
+    cudadevice = dict["cudadevice"]
     cudadevice >= 0 && CUDA.device!(cudadevice)
     return solve(instance, property; usecuda=cudadevice>=0)[]
 end
@@ -145,46 +134,7 @@ function tojson(data)
     end
 end
 
-function generate(graphname::String, problem::String, size::Int;
-    sizestop::Int=size, sizestep::Int=1,
-    degree::Int=3, seed::Int=1, seedstop::Int=seed,
-    filling::Float64=0.8,
-    weights::Union{Nothing,Vector{Float64}}=nothing,
-    datafolder::String="data", prefix::String="",
-    ntrials::Int=1, niters::Int=10, nslices::Int=0, sc_target::Int=25,
-    sc_weight::Float64=1.0, rw_weight::Float64=1.0,  # config TreeSA
-    )
-    for sz in size:sizestep:sizestop, sd in seed:seedstop
-        println("seed = $sd, size = $(sz)")
-        graph = get_graph(graphname, sz; degree, filling, seed=sd)
-        config = GraphProblemConfig(; problem, graph, weights, openvertices=Int[])
-        mkdir_and_dumpcode(datafolder, config; ntrials, niters, nslices, sc_target, sc_weight, rw_weight, prefix)
-    end
-end
-
-########################### COMPUTE ###################################
-function load_and_compute(datafolder, config, property; prefix, cudadevice)
-    folder = foldername(datafolder, config; create=false, prefix)
-    instance = GraphUtilities.load_code(config, folder)
-    println("time, space, RW complexitys are $(timespacereadwrite_complexity(instance))")
-    if cudadevice >=0
-        CUDA.device!(cudadevice)
-    end
-    res = solve(instance, property; usecuda=cudadevice>=0)[]
-    save_property(folder, property, res)
-end
-
-function compute(graphname::String, problem::String, size::Int, property::String;
-    sizestop::Int=size, sizestep::Int=1,
-    degree::Int=3, seed::Int=1, seedstop::Int=seed,
-    filling::Float64=0.8,
-    weights::Union{Nothing,Vector{Float64}}=nothing,
-    datafolder::String="data", prefix::String="",
-    cudadevice::Int=-1)
-    for sz in size:sizestep:sizestop, sd in seed:seedstop
-        println("seed = $sd, size = $(sz)")
-        graph = get_graph(graphname, sz; degree, filling, seed=sd)
-        config = GraphProblemConfig(; problem, graph, weights, openvertices=Int[])
-        load_and_compute(datafolder, config, GraphUtilities.parseproperty(property); prefix, cudadevice)
-    end
+function application(dict)
+    dict = verify(problem_verifier(), dict)
+    return tojson(json_solve(dict))
 end
