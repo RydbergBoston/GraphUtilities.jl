@@ -5,17 +5,19 @@ struct Verifier
     f
     default
     optional::Bool
+    forfield::String
 end
 struct VerifierTree
     dict::Dict
     optional::Bool
+    forfield::String
 end
-VerifierTree(dict::Dict; optional=false) = VerifierTree(dict, optional)
+VerifierTree(dict::Dict; optional=false, forfield="") = VerifierTree(dict, optional, forfield)
 
 struct VerificationError <: Exception
     msg::String
 end
-function Verifier(::Type{T}, f=@λ x->true; default=NoDefault(), optional=false) where T
+function Verifier(::Type{T}, f=@λ x->true; default=NoDefault(), optional=false, forfield="") where T
     if default !== NoDefault()
         if !(default isa T)
             error("The type of default value `$default` does not match the required type `$T`!")
@@ -23,12 +25,21 @@ function Verifier(::Type{T}, f=@λ x->true; default=NoDefault(), optional=false)
             error("The default value does not pass the checker!")
         end
     end
-    Verifier(T, f, default, optional)
+    Verifier(T, f, default, optional, forfield)
 end
 
 function verify(tree::VerifierTree, dict)
     updated = Dict()
-    for (k, v) in tree.dict
+    # sort the fields for that the dependent fields are updated the last
+    kvpairs = [(k,v) for (k, v) in tree.dict]
+    sort!(kvpairs, by=x->!isempty(x[2].forfield))
+    for (k, v) in kvpairs
+        if !isempty(v.forfield)  # check target field
+            method = updated[v.forfield]
+            if method != k   # we do not need to extract this conditional field!
+                continue
+            end
+        end
         if v isa VerifierTree
             # recurse
             if !haskey(dict, k)
@@ -80,6 +91,7 @@ end
 
 function optimizer_verifier()
     Dict("method"=>Verifier(String, @λ x->x ∈ ["TreeSA", "GreedyMethod"]; default="GreedyMethod"),
+        "TreeSA"=>VerifierTree(Dict(
             "sc_target"=> Verifier(Float64; default=20.0),
             "sc_weight" => Verifier(Float64; default=1.0),
             "rw_weight" => Verifier(Float64; default=1.0),
@@ -87,7 +99,10 @@ function optimizer_verifier()
             "niters" => Verifier(Int, @λ x -> x > 0; default=10),
             "nslices" => Verifier(Int, @λ x-> x>= 0; default=0),
             "betas" => Verifier(Vector{Float64}, @λ x->length(x)>0; default=collect(0.01:0.05:30.0)),
+        ); forfield="method", optional=true),
+        "GreedyMethod"=>VerifierTree(Dict(
             "nrepeat" => Verifier(Int, @λ x->length(x)>0; default=10)
+        ); forfield="method", optional=true)
     )
 end
 

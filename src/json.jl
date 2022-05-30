@@ -52,6 +52,7 @@ end
 
 function loadjson_optimizer(dict)
     method = dict["method"]
+    dict = dict[method]  # extract the related method
     if method == "TreeSA"
         return TreeSA(;
             sc_target=dict["sc_target"],
