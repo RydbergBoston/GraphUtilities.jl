@@ -53,6 +53,7 @@ Configurations.type_alias(::Type{SmallGraphConfig}) = "small"
     graph::GC
     weights::Union{Nothing, Vector} = nothing
     openvertices::Vector{Int} = Int[]
+    fixedvertices::Dict = Dict()
 end
 
 Base.hash(gc::GraphProblemConfig) = hash((gc.problem, gc.graph, gc.weights, gc.openvertices))
@@ -111,12 +112,12 @@ end
 function problem_instance(config::GraphProblemConfig; kwargs...)
     PT = parseproblem(config.problem)
     weights = config.weights === nothing ? NoWeight() : config.weights
-    PT(parsegraph(config.graph); weights, openvertices=config.openvertices, kwargs...)
+    PT(parsegraph(config.graph); weights, openvertices=config.openvertices, fixedvertices=config.fixedvertices, kwargs...)
 end
 function problem_instance(config::GraphProblemConfig, code)
     PT = parseproblem(config.problem)
     weights = config.weights === nothing ? NoWeight() : config.weights
-    PT(code, parsegraph(config.graph), weights, Dict{Int,Int}())   # fixed vertices type may be wrong
+    PT(code, parsegraph(config.graph), weights, config.fixedvertices)   # fixed vertices type may be wrong
 end
 
 unique_string(::SingleConfigMax{K}) where K = "SingleConfigMax$K"

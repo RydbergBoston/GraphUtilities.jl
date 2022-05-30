@@ -62,12 +62,12 @@ end
     GraphUtilities.save_code(folder, gp)
     gp2 = GraphUtilities.load_code(config, folder)
 
-    for property in [SizeMax(1), SizeMin(1), SizeMax(3), SizeMin(3), CountingAll(),
-        CountingMax(1), CountingMin(1), CountingMax(3), CountingMin(3), GraphPolynomial(),
-        SingleConfigMax(1; bounded=false), SingleConfigMin(1; bounded=false), SingleConfigMax(3; bounded=false), SingleConfigMin(3; bounded=false),
-        SingleConfigMax(1; bounded=true), SingleConfigMin(1; bounded=true), SingleConfigMax(3; bounded=true), SingleConfigMin(3; bounded=true),
-        ConfigsMax(1; bounded=true, tree_storage=true), ConfigsMin(1; bounded=true, tree_storage=false),
-        ConfigsMax(1; bounded=false, tree_storage=true), ConfigsMin(1; bounded=false, tree_storage=false),
+    for property in [SizeMax(), SizeMin(), SizeMax(3), SizeMin(3), CountingAll(),
+        CountingMax(), CountingMin(), CountingMax(3), CountingMin(3), GraphPolynomial(),
+        SingleConfigMax(; bounded=false), SingleConfigMin(; bounded=false), SingleConfigMax(3; bounded=false), SingleConfigMin(3; bounded=false),
+        SingleConfigMax(; bounded=true), SingleConfigMin(; bounded=true), SingleConfigMax(3; bounded=true), SingleConfigMin(3; bounded=true),
+        ConfigsMax(; bounded=true, tree_storage=true), ConfigsMin(; bounded=true, tree_storage=false),
+        ConfigsMax(; bounded=false, tree_storage=true), ConfigsMin(; bounded=false, tree_storage=false),
         ConfigsMax(3; bounded=true, tree_storage=true), ConfigsMin(3; bounded=true, tree_storage=false),
         ConfigsMax(3; bounded=false, tree_storage=true), ConfigsMin(3; bounded=false, tree_storage=false),
         ConfigsAll{true}(), ConfigsAll{false}()

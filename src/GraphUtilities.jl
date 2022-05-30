@@ -12,8 +12,10 @@ end
 export GraphProblemConfig, problem_instance, foldername
 export SmallGraphConfig, DiagGraphConfig, SquareGraphConfig, RegularGraphConfig, MISProjectGraphConfig, MappedRegularGraphConfig
 export save_property, load_property
+export unified_solve
 
 include("config.jl")
 include("fileio.jl")
+include("json.jl")
 
 end

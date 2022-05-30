@@ -7,3 +7,7 @@ end
 @testset "fileio" begin
     include("fileio.jl")
 end
+
+@testset "json" begin
+    include("json.jl")
+end
