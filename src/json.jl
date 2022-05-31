@@ -72,26 +72,6 @@ function loadjson_optimizer(dict)
     end
 end
 
-function json_solve(dict)
-    graph = loadjson_graph(dict["graph"])
-    optimizer = loadjson_optimizer(dict["optimizer"])
-    PROB = parseproblem(dict["problem"])
-    property = parseproperty(dict["property"])
-
-    instance = PROB(graph;
-            weights=get(dict, "weights", NoWeight()),  # weights is optional
-            openvertices=dict["openvertices"],
-            fixedvertices=dict["fixedvertices"],
-            optimizer,
-            simplifier=MergeGreedy()
-        )
-    println("time, space, RW complexitys are $(timespacereadwrite_complexity(instance))")
-
-    cudadevice = dict["cudadevice"]
-    cudadevice >= 0 && CUDA.device!(cudadevice)
-    return solve(instance, property; usecuda=cudadevice>=0)[]
-end
-
 function tojson(data)
     if data isa Tropical
         return Dict("size"=>data.n)
@@ -137,5 +117,40 @@ end
 
 function application(dict)
     dict = verify(problem_verifier(), dict)
-    return tojson(json_solve(dict))
+    return json_solve(dict)
 end
+
+function json_opteinsum(dict)
+    code = DynamicEinCode(dict["inputs"], dict["output"])
+    optimizer = loadjson_optimizer(dict["optimizer"])
+    simp = get(dict, "simplifier", "")  # optional
+    simplifier = if simp == "MergeGreedy"
+        MergeGreedy()
+    elseif simp == "MergeVectors"
+        MergeVectors()
+    else
+        nothing
+    end
+    GenericTensorNetworks.OMEinsumContractionOrders._todict(optimize_code(code, size_dict, optimizer, simplifier))
+end
+
+function json_solve(dict)
+    graph = loadjson_graph(dict["graph"])
+    optimizer = loadjson_optimizer(dict["optimizer"])
+    PROB = parseproblem(dict["problem"])
+    property = parseproperty(dict["property"])
+
+    instance = PROB(graph;
+            weights=get(dict, "weights", NoWeight()),  # weights is optional
+            openvertices=dict["openvertices"],
+            fixedvertices=dict["fixedvertices"],
+            optimizer,
+            simplifier=MergeGreedy()
+        )
+    println("time, space, RW complexitys are $(timespacereadwrite_complexity(instance))")
+
+    cudadevice = dict["cudadevice"]
+    cudadevice >= 0 && CUDA.device!(cudadevice)
+    return tojson(solve(instance, property; usecuda=cudadevice>=0)[])
+end
+
