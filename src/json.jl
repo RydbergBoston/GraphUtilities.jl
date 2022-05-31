@@ -52,7 +52,7 @@ end
 
 function loadjson_optimizer(dict)
     method = dict["method"]
-    dict = dict[method]  # extract the related method
+    dict = dict["method.$method"]  # extract the related method
     if method == "TreeSA"
         return TreeSA(;
             sc_target=dict["sc_target"],
@@ -116,12 +116,21 @@ function tojson(data)
 end
 
 function application(dict)
-    dict = verify(problem_verifier(), dict)
-    return json_solve(dict)
+    dict = verify(application_verifier, dict)
+    api = dict["api"]
+    if api == "solve"
+        return app_solve(dict["api.solve"])
+    elseif api == "graph"
+        return app_graph(dict["api.graph"])
+    elseif api == "opteinsum"
+        return app_opteinsum(dict["api.opteinsum"])
+    elseif api == "help"
+        Dict("help"=>string(application_verifier))
+    end
 end
 
-function json_opteinsum(dict)
-    code = DynamicEinCode(dict["inputs"], dict["output"])
+function app_opteinsum(dict)
+    code = GenericTensorNetworks.OMEinsum.DynamicEinCode(dict["inputs"], dict["output"])
     optimizer = loadjson_optimizer(dict["optimizer"])
     simp = get(dict, "simplifier", "")  # optional
     simplifier = if simp == "MergeGreedy"
@@ -131,10 +140,10 @@ function json_opteinsum(dict)
     else
         nothing
     end
-    GenericTensorNetworks.OMEinsumContractionOrders._todict(optimize_code(code, size_dict, optimizer, simplifier))
+    GenericTensorNetworks.OMEinsumContractionOrders._todict(optimize_code(code, dict["sizes"], optimizer, simplifier))
 end
 
-function json_solve(dict)
+function app_solve(dict)
     graph = loadjson_graph(dict["graph"])
     optimizer = loadjson_optimizer(dict["optimizer"])
     PROB = parseproblem(dict["problem"])
@@ -154,3 +163,22 @@ function json_solve(dict)
     return tojson(solve(instance, property; usecuda=cudadevice>=0)[])
 end
 
+function app_graph(dict)
+    type = dict["type"]
+    cfg = dict["type.$type"]
+    g = if type == "kings"
+        Random.seed!(cfg["seed"])
+        random_diagonal_coupled_graph(cfg["m"], cfg["n"], cfg["filling"])
+    elseif type == "square"
+        Random.seed!(cfg["seed"])
+        random_square_lattice_graph(cfg["m"], cfg["n"], cfg["filling"])
+    elseif type == "smallgraph"
+        Random.seed!(cfg["seed"])
+        smallgraph(Symbol(cfg["name"]))
+    elseif type == "regular"
+        random_regular_graph(cfg["n"], cfg["d"], seed=cfg["seed"])
+    else
+        error("unkown graph type: $type")
+    end
+    return Dict("nv"=>nv(g), "edges"=>[[e.src, e.dst] for e in edges(g)])
+end

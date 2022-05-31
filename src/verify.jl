@@ -29,6 +29,35 @@ function Verifier(::Type{T}, f=@λ x->true; default=NoDefault(), optional=false,
     Verifier(T, f, default, optional, forfield)
 end
 
+# Better printing
+using AbstractTrees
+
+function AbstractTrees.children(ne::VerifierTree)
+    [k=>v for (k, v) in ne.dict]
+end
+AbstractTrees.children(ne::Pair{String, <:VerifierTree}) = children(ne.second)
+AbstractTrees.children(ne::Pair{String, <:Verifier}) = []
+function AbstractTrees.printnode(io::IO, x::VerifierTree)
+    print(io, "ROOT")
+    x.optional && print(io, " optional")
+end
+function AbstractTrees.printnode(io::IO, x::Pair{String, <:VerifierTree})
+    print(io, "$(x.first)")
+    x.second.optional && print(io, ", optional")
+end
+function AbstractTrees.printnode(io::IO, x::Pair{String, <:Verifier})
+    e = x.second
+    print(io, "$(x.first)::$(e.type)")
+    print(io, ", checker = ")
+    show(io, e.f)
+    e.optional && print(io, ", optional")
+    e.default isa NoDefault || print(io, ", default = $(e.default)")
+end
+function Base.show(io::IO, e::VerifierTree)
+    print_tree(io, e)
+end
+Base.show(io::IO, ::MIME"text/plain", e::VerifierTree) = Base.show(io, e)
+
 function verify(tree::VerifierTree, dict)
     updated = Dict()
     # sort the fields for that the dependent fields are updated the last
@@ -37,7 +66,7 @@ function verify(tree::VerifierTree, dict)
     for (k, v) in kvpairs
         if !isempty(v.forfield)  # check target field
             method = updated[v.forfield]
-            if method != k   # we do not need to extract this conditional field!
+            if "$(v.forfield).$(method)" != k   # we do not need to extract this conditional field!
                 continue
             end
         end
@@ -85,61 +114,6 @@ function verify(tree::VerifierTree, dict)
     return updated
 end
 
-function graph_verifier()
-    VerifierTree("nv"=>Verifier(Int, @λ x->1<=x),
-        "edges"=>Verifier(Vector{Vector{Int}}, @λ x->all(e->length(e)==2, x)))
-end
-
-function optimizer_verifier()
-    VerifierTree("method"=>Verifier(String, @λ x->x ∈ ["TreeSA", "GreedyMethod"]; default="GreedyMethod"),
-        "TreeSA"=>VerifierTree(Dict(
-            "sc_target"=> Verifier(Float64; default=20.0),
-            "sc_weight" => Verifier(Float64; default=1.0),
-            "rw_weight" => Verifier(Float64; default=1.0),
-            "ntrials" => Verifier(Int, @λ x -> x > 0; default=3),
-            "niters" => Verifier(Int, @λ x -> x > 0; default=10),
-            "nslices" => Verifier(Int, @λ x-> x>= 0; default=0),
-            "betas" => Verifier(Vector{Float64}, @λ x->length(x)>0; default=collect(0.01:0.05:30.0)),
-        ); forfield="method", optional=true),
-        "GreedyMethod"=>VerifierTree(Dict(
-            "nrepeat" => Verifier(Int, @λ x->length(x)>0; default=10)
-        ); forfield="method", optional=true)
-    )
-end
-
-function problem_verifier()
-    VerifierTree(
-        "api"=>Verifier(String, @λ x->x ∈ ["solve", "opteinsum", "graph", "help"]),
-        "solve"=> VerifierTree("property"=>Verifier(String, @λ x -> x ∈ ["SizeMax", "SizeMin",
-                "SizeMax3", "SizeMin3", "CountingAll",
-                "CountingMax", "CountingMin", "CountingMax3", "CountingMin3", "GraphPolynomial",
-                "SingleConfigMax", "SingleConfigMin", "SingleConfigMax3", "SingleConfigMin3",
-                "ConfigsMaxTree", "ConfigsMin",
-                "ConfigsMaxTree3", "ConfigsMin3",
-                "ConfigsAll", "ConfigsAllTree"
-                ]),
-            "problem"=>Verifier(String, @λ x-> x ∈ ["MaximalIS", "IndependentSet", "DominatingSet",
-                    "MaxCut", "Coloring{3}", "Matching"]),
-            "weights"=>Verifier(Vector; optional=true),
-            "openvertices"=>Verifier(Vector; default=[]),
-            "fixedvertices"=>Verifier(Dict; default=Dict()),
-            "cudadevice"=>Verifier(Int; default=-1),
-            "optimizer" => VerifierTree(optimizer_verifier().dict, optional=true),
-            "graph" => VerifierTree(graph_verifier())
-            ; forfield="api"),
-        "opteinsum"=>VerifierTree(
-            "inputs"=>Verifier(Vector{Vector{Int}}),
-            "output"=>Verifier(Vector{Int}),
-            "optimizer"=>VerifierTree(optimizer_verifier().dict, optional=true),
-            "simplifier"=>Verifier(String, (@λ x->x ∈ ["MergeGreedy", "MergeVectors"]), optional=true)
-            ),
-        "graph"=>VerifierTree(
-            "name"=>Verifier(String, @λ x->x ∈ ["kings", "square", "smallgraph", "regular"]),
-            "kings"=>VerifierTree("m"=>Verifier(Int, @λ x->x>0))
-        )
-    )
-end
-
 using MLStyle
 
 macro terms(args...)
@@ -155,8 +129,8 @@ function verifier_impl(expr)
     @match expr begin
         :($x = @terms $line $body $(kwi...)) => begin
             sym, forfield = @match x begin
-                :($b.$a) => (String(a), String(b))
-                :($a) => (String(a), "")
+                :($b.$a) => ("$b.$a", String(b))
+                :($a) => ("$a", "")
             end
             optional = false
             for arg in kwi
@@ -184,10 +158,10 @@ function verifier_impl(expr)
         end
         :($x = @check $line $(args...)) => begin
             sym, type, forfield = @match x begin
-                :($b.$a::$T) => (String(a), T, String(b))
-                :($a::$T) => (String(a), T, "")
-                :($b.$a) => (String(a), :Any, String(b))
-                :($a) => (String(a), :Any, "")
+                :($b.$a::$T) => ("$b.$a", T, String(b))
+                :($a::$T) => ("$a", T, "")
+                :($b.$a) => ("$b.$a", :Any, String(b))
+                :($a) => ("$a", :Any, "")
             end
             f, optional, default = :(x->true), false, NoDefault()
             for arg in args
@@ -204,7 +178,28 @@ function verifier_impl(expr)
     end
 end
 
-pvr = @terms begin
+const graph_verifier = @terms begin
+    nv::Int=@check x->1<=x
+    edges::Vector{Vector{Int}}=@check x->all(e->length(e)==2, x)
+end
+
+const optimizer_verifier = @terms begin
+    method::String = @check x->x ∈ ["TreeSA", "GreedyMethod"] default="GreedyMethod"
+    method.TreeSA = @terms begin
+        sc_target::Float64 = @check default=20.0
+        sc_weight::Float64 = @check default=1.0
+        rw_weight::Float64 = @check default=1.0
+        ntrials::Int = @check x -> x > 0 default=3
+        niters::Int = @check x -> x > 0 default=10
+        nslices::Int = @check x-> x>= 0 default=0
+        betas::Vector{Float64} = @check x->length(x)>0 default=collect(0.01:0.05:30.0)
+    end optional
+    method.GreedyMethod = @terms begin
+        nrepeat::Int = @check x->length(x)>0 default=10
+    end optional
+end
+
+const application_verifier = @terms begin
     api::String = @check x->x∈["solve", "opteinsum", "graph", "help"]
     api.solve = @terms begin
         property::String = @check x -> x ∈ ["SizeMax", "SizeMin",
@@ -221,13 +216,14 @@ pvr = @terms begin
         openvertices::Vector = @check default=[]
         fixedvertices::Dict = @check default=Dict()
         cudadevice::Int = @check default=-1
-        optimizer = @terms $(optimizer_verifier()) optional
-        graph = @terms $(graph_verifier())
+        optimizer = @terms $(optimizer_verifier) optional
+        graph = @terms $(graph_verifier)
     end
     api.opteinsum = @terms begin
         inputs::Vector{Vector{Int}}=@check
         output::Vector{Int}=@check
-        optimizer = @terms $(optimizer_verifier()) optional
+        sizes::Dict{Int,Int}=@check
+        optimizer = @terms $(optimizer_verifier) optional
         simplifier::String = @check x->x ∈ ["MergeGreedy", "MergeVectors"] optional
     end
     api.graph = @terms begin
@@ -235,13 +231,14 @@ pvr = @terms begin
         type.kings = @terms begin
             m::Int = @check x->x>0
             n::Int = @check x->x>0
-            filling::Float64= @check x->x>0
-            seed::Int = @check
+            filling::Float64= @check x->x>0 default=1.0
+            seed::Int = @check default=42
         end
         type.square = @terms begin
             m::Int = @check x->x>0
             n::Int = @check x->x>0
-            filling::Float64 = @check x->x>0
+            filling::Float64 = @check x->x>0 default=1.0
+            seed::Int = @check default=42
         end
         type.smallgraph = @terms begin
             name::String = @check
@@ -249,7 +246,7 @@ pvr = @terms begin
         type.regular = @terms begin
             d::Int = @check x->x>0
             n::Int = @check x->x>0
-            seed::Int = @check
+            seed::Int = @check default=42
         end
     end
 end
